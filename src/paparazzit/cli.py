@@ -97,7 +97,7 @@ def snap(url, window, manifest, wait):
         sys.exit(1)
 
 @cli.command()
-@click.option("--url", required=True, help="URL of the sitemap.xml file.")
+@click.option("--url", required=True, help="URL of the sitemap.xml file or domain root.")
 @click.option("--output", help="Output filename for the manifest (default: captures/manifests/manifest.json).")
 @click.option("--limit", type=int, help="Limit the number of URLs to extract.")
 def scout(url, output, limit):
@@ -141,6 +141,9 @@ def scout(url, output, limit):
             
         click.echo(f"Manifest saved to: {output}")
         
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     except Exception as e:
         click.echo(f"Error during scout: {e}", err=True)
         sys.exit(1)
