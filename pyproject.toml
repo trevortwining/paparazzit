@@ -1,0 +1,32 @@
+[project]
+name = "paparazzit"
+version = "0.1.0"
+description = "CLI tool for capturing screenshots with metadata"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.8",
+    "mss>=10.1.0",
+    "playwright>=1.50.0",
+    "pillow>=11.1.0",
+    "pygetwindow>=0.0.9",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+paparazzit = "paparazzit.cli:cli"
+
+[tool.setuptools]
+packages = ["paparazzit"]
+package-dir = {"" = "src"}
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "pre-commit>=4.1.0",
+]
