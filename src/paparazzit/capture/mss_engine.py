@@ -3,7 +3,7 @@ from paparazzit.capture.engine import CaptureEngine
 from PIL import Image
 
 class MSSEngine(CaptureEngine):
-    def capture(self, window_title: str):
+    def capture(self, window_title: str, **kwargs):
         with mss.mss() as sct:
             if window_title == "all" or window_title == "active":
                 # For Linux, we default to primary monitor as window title targeting is limited without X11 libs

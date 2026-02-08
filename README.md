@@ -11,6 +11,7 @@ A high-performance CLI screenshot capture tool designed for QA teams. It collect
 - **Batch Processing:** Snap dozens of URLs at once from a JSON manifest.
 - **Full-Page by Default:** Web captures automatically include the entire vertical length of the page.
 - **Smart Organization:** Captures are automatically sorted into folders by domain or manifest name.
+- **Smart Loading:** Automatic waiting for network idle plus an optional `--wait` buffer.
 
 ## 📦 Installation
 

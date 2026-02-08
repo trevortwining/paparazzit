@@ -3,6 +3,9 @@ import os
 from datetime import datetime
 import platform
 
+PROJECT_ROOT = os.path.expanduser("~/projects/utils/paparazzit")
+DEFAULT_CAPTURES_DIR = os.path.join(PROJECT_ROOT, "captures", "snaps")
+
 def get_system_info():
     return {
         "os": platform.system(),
@@ -10,7 +13,10 @@ def get_system_info():
         "machine": platform.machine(),
     }
 
-def save_capture(image, engine_name, target, captures_dir="captures", subdir=None, save_json=True):
+def save_capture(image, engine_name, target, captures_dir=None, subdir=None, save_json=True):
+    if captures_dir is None:
+        captures_dir = DEFAULT_CAPTURES_DIR
+
     output_dir = captures_dir
     if subdir:
         output_dir = os.path.join(captures_dir, subdir)

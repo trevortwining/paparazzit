@@ -1,6 +1,6 @@
 import pytest
 from click.testing import CliRunner
-from paparazzit.cli import cli
+from paparazzit.cli import cli, MANIFESTS_DIR
 import json
 import os
 
@@ -41,9 +41,9 @@ def test_cli_scout_default_path(mocker):
     result = runner.invoke(cli, ['scout', '--url', 'https://site.com/sitemap.xml'])
     
     assert result.exit_code == 0
-    expected_path = os.path.join("captures", "manifests", "manifest.json")
+    expected_path = os.path.join(MANIFESTS_DIR, "manifest.json")
     assert f"Manifest saved to: {expected_path}" in result.output
-    mock_makedirs.assert_called_with(os.path.join("captures", "manifests"), exist_ok=True)
+    mock_makedirs.assert_called_with(MANIFESTS_DIR, exist_ok=True)
     mock_open_func.assert_called_with(expected_path, 'w')
 
 def test_cli_snap_manifest_lookup(mocker, tmp_path):
@@ -65,7 +65,7 @@ def test_cli_snap_manifest_lookup(mocker, tmp_path):
     result = runner.invoke(cli, ['snap', '--manifest', 'my_manifest.json'])
     
     assert result.exit_code == 0
-    expected_path = os.path.join("captures", "manifests", "my_manifest.json")
+    expected_path = os.path.join(MANIFESTS_DIR, "my_manifest.json")
     assert f"Processing manifest: {expected_path}" in result.output
 
 def test_cli_snap_manifest_not_found(mocker):
@@ -109,6 +109,22 @@ def test_cli_snap_url_mocked(mocker):
     assert result.exit_code == 0
     assert "Capturing URL: https://example.com ..." in result.output
     assert "Capture saved successfully!" in result.output
+
+def test_cli_snap_url_wait_flag(mocker):
+    # Mock PlaywrightEngine
+    mock_pw_class = mocker.patch("paparazzit.cli.PlaywrightEngine")
+    mock_engine_instance = mock_pw_class.return_value
+    
+    mock_save = mocker.patch("paparazzit.cli.save_capture")
+    mock_save.return_value = ("img.png", "meta.json", {})
+    
+    runner = CliRunner()
+    # Test --wait flag
+    result = runner.invoke(cli, ['snap', '--url', 'https://example.com', '--wait', '2000'])
+    
+    assert result.exit_code == 0
+    # Verify capture was called with the wait parameter
+    mock_engine_instance.capture.assert_called_with('https://example.com', wait=2000)
 
 def test_cli_snap_manifest_mocked(mocker, tmp_path):
     # Create a dummy manifest

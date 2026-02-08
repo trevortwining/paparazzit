@@ -1,13 +1,15 @@
 import click
 from paparazzit.capture.playwright_engine import PlaywrightEngine
 from paparazzit.capture.mss_engine import MSSEngine
-from paparazzit.utils.storage import save_capture
+from paparazzit.utils.storage import save_capture, PROJECT_ROOT, DEFAULT_CAPTURES_DIR
 from paparazzit.utils.manifest import parse_manifest
 from paparazzit.utils.sitemap import fetch_sitemap
 import json
 import sys
 import os
 from urllib.parse import urlparse
+
+MANIFESTS_DIR = os.path.join(PROJECT_ROOT, "captures", "manifests")
 
 @click.group()
 def cli():
@@ -18,7 +20,8 @@ def cli():
 @click.option("--url", help="Capture a screenshot of a URL using Playwright.")
 @click.option("--window", help="Capture a screenshot of a window by title using MSS.")
 @click.option("--manifest", help="Capture multiple URLs from a JSON manifest file.")
-def snap(url, window, manifest):
+@click.option("--wait", type=int, default=0, help="Additional wait time in milliseconds before capture.")
+def snap(url, window, manifest, wait):
     """Capture a screenshot and save it with metadata."""
     if not url and not window and not manifest:
         click.echo("Error: You must provide either --url, --window, or --manifest.")
@@ -30,11 +33,13 @@ def snap(url, window, manifest):
             # Manifest lookup logic
             manifest_path = manifest
             if not os.path.exists(manifest_path):
-                default_path = os.path.join("captures", "manifests", manifest)
+                # Check absolute manifest dir
+                default_path = os.path.join(MANIFESTS_DIR, manifest)
                 if os.path.exists(default_path):
                     manifest_path = default_path
                 else:
                     click.echo(f"Error: Manifest file not found: {manifest}")
+                    click.echo(f"Searched in: {os.getcwd()} and {MANIFESTS_DIR}")
                     sys.exit(1)
 
             subdir = os.path.basename(manifest_path).replace(".", "-")
@@ -46,7 +51,8 @@ def snap(url, window, manifest):
                 for target_url in urls:
                     try:
                         click.echo(f"Capturing URL: {target_url} ...")
-                        image = engine.capture(target_url)
+                        image = engine.capture(target_url, wait=wait)
+                        # save_capture uses DEFAULT_CAPTURES_DIR by default
                         image_path, _, metadata = save_capture(image, "playwright", target_url, subdir=subdir, save_json=False)
                         all_metadata.append(metadata)
                         click.echo(f"  Success: {image_path}")
@@ -55,7 +61,7 @@ def snap(url, window, manifest):
             
             # Save consolidated metadata
             if all_metadata:
-                metadata_file = os.path.join("captures", subdir, "metadata.json")
+                metadata_file = os.path.join(DEFAULT_CAPTURES_DIR, subdir, "metadata.json")
                 os.makedirs(os.path.dirname(metadata_file), exist_ok=True)
                 with open(metadata_file, "w") as f:
                     json.dump(all_metadata, f, indent=2)
@@ -70,14 +76,14 @@ def snap(url, window, manifest):
             subdir = domain.replace(".", "-")
             click.echo(f"Capturing URL: {url} ...")
             engine = PlaywrightEngine()
-            image = engine.capture(url)
+            image = engine.capture(url, wait=wait)
             engine_name = "playwright"
             target = url
         else:
             subdir = "desktop"
             click.echo(f"Capturing Window: {window} ...")
             engine = MSSEngine()
-            image = engine.capture(window)
+            image = engine.capture(window, wait=wait)
             engine_name = "mss"
             target = window
         
@@ -99,14 +105,27 @@ def scout(url, output, limit):
     try:
         # Default output path convention
         if output is None:
-            output_dir = os.path.join("captures", "manifests")
-            os.makedirs(output_dir, exist_ok=True)
-            output = os.path.join(output_dir, "manifest.json")
+            output = os.path.join(MANIFESTS_DIR, "manifest.json")
+            os.makedirs(os.path.dirname(output), exist_ok=True)
         else:
-            # If user provides a path, ensure parent directory exists
+            # If user provides a path, use it as is? Or make it relative to MANIFESTS_DIR?
+            # Usually strict users want full control if they provide a path.
+            # But the user said "When saving a manifest save to captures/manifests".
+            # Let's assume if it's just a filename, it goes there. If it's a path, we respect it?
+            # Or enforce strictly?
+            # User said: "Regardless of where a command is run, this structure should be followed."
+            # So standardizing to MANIFESTS_DIR is safer if it's just a name.
+            if not os.path.isabs(output) and "/" not in output and "\\" not in output:
+                 output = os.path.join(MANIFESTS_DIR, output)
+            
+            # If user provides a complex path, we respect it but ensure parent exists
             parent = os.path.dirname(output)
             if parent:
                 os.makedirs(parent, exist_ok=True)
+            else:
+                # This happens if output was just a filename and we didn't join it above (unlikely with logic)
+                # But safer to ensure parent exists for MANIFESTS_DIR if we joined it
+                os.makedirs(os.path.dirname(output), exist_ok=True)
 
         click.echo(f"Scouting sitemap: {url} ...")
         urls = fetch_sitemap(url)
@@ -154,17 +173,24 @@ def doctor():
     except Exception as e:
         click.echo(f"❌ Playwright check failed: {e}", err=True)
 
-    # 3. Check for capture directory
-    if os.path.exists("captures"):
-        click.echo("✅ 'captures' directory exists.")
+    # 3. Check for capture directories
+    if os.path.exists(DEFAULT_CAPTURES_DIR):
+        click.echo(f"✅ Snaps directory exists: {DEFAULT_CAPTURES_DIR}")
     else:
-        click.echo("ℹ️ 'captures' directory not yet created (this is normal if no snaps have been taken).")
+        click.echo(f"ℹ️ Snaps directory not yet created: {DEFAULT_CAPTURES_DIR}")
+
+    if os.path.exists(MANIFESTS_DIR):
+        click.echo(f"✅ Manifests directory exists: {MANIFESTS_DIR}")
+    else:
+        click.echo(f"ℹ️ Manifests directory not yet created: {MANIFESTS_DIR}")
 
     # 4. Check for pre-commit hooks
-    if os.path.exists(".git/hooks/pre-commit"):
+    # We should look for .git/hooks relative to PROJECT_ROOT
+    git_hooks = os.path.join(PROJECT_ROOT, ".git", "hooks", "pre-commit")
+    if os.path.exists(git_hooks):
         click.echo("✅ Git pre-commit hooks are installed.")
     else:
-        click.echo("❌ Git pre-commit hooks are NOT installed.")
+        click.echo(f"❌ Git pre-commit hooks are NOT installed (checked {git_hooks}).")
 
     click.echo("\nDoctor check complete. Take two of these and call me in the morning! ")
 

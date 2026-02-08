@@ -35,13 +35,15 @@ class PlaywrightEngine(CaptureEngine):
         if self.playwright:
             self.playwright.stop()
 
-    def capture(self, url: str):
+    def capture(self, url: str, wait: int = 0):
         if self.browser:
             # Context management handled externally or via __enter__
             page = self.browser.new_page()
             try:
                 page.goto(url)
                 page.wait_for_load_state("networkidle")
+                if wait > 0:
+                    page.wait_for_timeout(wait)
                 screenshot_bytes = page.screenshot(full_page=True)
                 return Image.open(io.BytesIO(screenshot_bytes))
             finally:
@@ -54,6 +56,8 @@ class PlaywrightEngine(CaptureEngine):
                 try:
                     page.goto(url)
                     page.wait_for_load_state("networkidle")
+                    if wait > 0:
+                        page.wait_for_timeout(wait)
                     screenshot_bytes = page.screenshot(full_page=True)
                     return Image.open(io.BytesIO(screenshot_bytes))
                 finally:
