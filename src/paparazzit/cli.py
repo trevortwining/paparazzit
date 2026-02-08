@@ -27,9 +27,19 @@ def snap(url, window, manifest):
     try:
         subdir = None
         if manifest:
-            subdir = os.path.basename(manifest).replace(".", "-")
-            urls = parse_manifest(manifest)
-            click.echo(f"Processing manifest: {manifest} ({len(urls)} URLs)")
+            # Manifest lookup logic
+            manifest_path = manifest
+            if not os.path.exists(manifest_path):
+                default_path = os.path.join("captures", "manifests", manifest)
+                if os.path.exists(default_path):
+                    manifest_path = default_path
+                else:
+                    click.echo(f"Error: Manifest file not found: {manifest}")
+                    sys.exit(1)
+
+            subdir = os.path.basename(manifest_path).replace(".", "-")
+            urls = parse_manifest(manifest_path)
+            click.echo(f"Processing manifest: {manifest_path} ({len(urls)} URLs)")
             
             all_metadata = []
             with PlaywrightEngine() as engine:
@@ -46,6 +56,7 @@ def snap(url, window, manifest):
             # Save consolidated metadata
             if all_metadata:
                 metadata_file = os.path.join("captures", subdir, "metadata.json")
+                os.makedirs(os.path.dirname(metadata_file), exist_ok=True)
                 with open(metadata_file, "w") as f:
                     json.dump(all_metadata, f, indent=2)
                 click.echo(f"Unified metadata saved to: {metadata_file}")
@@ -81,11 +92,22 @@ def snap(url, window, manifest):
 
 @cli.command()
 @click.option("--url", required=True, help="URL of the sitemap.xml file.")
-@click.option("--output", default="manifest.json", help="Output filename for the manifest (default: manifest.json).")
+@click.option("--output", help="Output filename for the manifest (default: captures/manifests/manifest.json).")
 @click.option("--limit", type=int, help="Limit the number of URLs to extract.")
 def scout(url, output, limit):
     """Fetch and parse a sitemap.xml file into a JSON manifest."""
     try:
+        # Default output path convention
+        if output is None:
+            output_dir = os.path.join("captures", "manifests")
+            os.makedirs(output_dir, exist_ok=True)
+            output = os.path.join(output_dir, "manifest.json")
+        else:
+            # If user provides a path, ensure parent directory exists
+            parent = os.path.dirname(output)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+
         click.echo(f"Scouting sitemap: {url} ...")
         urls = fetch_sitemap(url)
         
@@ -144,7 +166,7 @@ def doctor():
     else:
         click.echo("❌ Git pre-commit hooks are NOT installed.")
 
-    click.echo("\nDoctor check complete.")
+    click.echo("\nDoctor check complete. Take two of these and call me in the morning! ")
 
 if __name__ == "__main__":
     cli()

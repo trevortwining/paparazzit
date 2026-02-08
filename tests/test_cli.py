@@ -28,6 +28,58 @@ def test_cli_scout_mocked(mocker, tmp_path):
         data = json.load(f)
     assert data == ["https://site.com/1", "https://site.com/2"]
 
+def test_cli_scout_default_path(mocker):
+    # Mock fetch_sitemap
+    mock_fetch = mocker.patch("paparazzit.cli.fetch_sitemap")
+    mock_fetch.return_value = ["https://site.com/1"]
+    
+    # Mock os.makedirs and open to avoid real filesystem side effects
+    mock_makedirs = mocker.patch("paparazzit.cli.os.makedirs")
+    mock_open_func = mocker.patch("paparazzit.cli.open", mocker.mock_open())
+    
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scout', '--url', 'https://site.com/sitemap.xml'])
+    
+    assert result.exit_code == 0
+    expected_path = os.path.join("captures", "manifests", "manifest.json")
+    assert f"Manifest saved to: {expected_path}" in result.output
+    mock_makedirs.assert_called_with(os.path.join("captures", "manifests"), exist_ok=True)
+    mock_open_func.assert_called_with(expected_path, 'w')
+
+def test_cli_snap_manifest_lookup(mocker, tmp_path):
+    # 1. Test finding manifest in captures/manifests/
+    mock_parse = mocker.patch("paparazzit.cli.parse_manifest")
+    mock_parse.return_value = ["https://site.com/1"]
+    
+    # Mock os.path.exists: first call for manifest path (False), second for default path (True)
+    mock_exists = mocker.patch("paparazzit.cli.os.path.exists")
+    mock_exists.side_effect = [False, True]
+    
+    # Mock engines and save_capture
+    mocker.patch("paparazzit.cli.PlaywrightEngine")
+    mocker.patch("paparazzit.cli.save_capture", return_value=("img.png", None, {}))
+    mocker.patch("paparazzit.cli.os.makedirs")
+    mocker.patch("paparazzit.cli.open", mocker.mock_open())
+    
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snap', '--manifest', 'my_manifest.json'])
+    
+    assert result.exit_code == 0
+    expected_path = os.path.join("captures", "manifests", "my_manifest.json")
+    assert f"Processing manifest: {expected_path}" in result.output
+
+def test_cli_snap_manifest_not_found(mocker):
+    # Mock os.path.exists: return False for both checks
+    mock_exists = mocker.patch("paparazzit.cli.os.path.exists")
+    mock_exists.return_value = False
+    
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snap', '--manifest', 'missing.json'])
+    
+    assert result.exit_code == 1
+    assert "Error: Manifest file not found: missing.json" in result.output
+
+
 def test_cli_scout_limit(mocker, tmp_path):
     mock_fetch = mocker.patch("paparazzit.cli.fetch_sitemap")
     mock_fetch.return_value = ["https://site.com/1", "https://site.com/2", "https://site.com/3"]
