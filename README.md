@@ -1,81 +1,80 @@
 # paparazzit 📸
 
-A high-performance CLI screenshot capture tool designed for QA teams. It collects screenshots along with rich system and context metadata, supporting both web (Playwright) and desktop (MSS) capture engines.
+paparazzit is a robust CLI tool designed for automated screenshot capture and QA. It supports both web-based captures (via Playwright) and desktop window captures (via MSS), making it a versatile companion for visual regression testing and documentation.
 
-## 🚀 Features
+## Features
 
-- **Web Engine:** Full-page captures using Playwright.
-- **Desktop Engine:** Fast screen/window captures using MSS.
-- **Context-Rich:** Every capture generates a matching JSON metadata sidecar (timestamp, URL, window title, system info).
-- **Sitemap Scouting:** Automatically generate capture manifests from website sitemaps.
-- **Batch Processing:** Snap dozens of URLs at once from a JSON manifest.
-- **Full-Page by Default:** Web captures automatically include the entire vertical length of the page.
-- **Smart Organization:** Captures are automatically sorted into folders by domain or manifest name.
-- **Smart Loading:** Automatic waiting for network idle plus an optional `--wait` buffer.
+- **Web Snapshots**: Capture full-page or viewport screenshots of URLs using Playwright.
+- **Window Snapshots**: Capture specific desktop windows by title using MSS.
+- **Sitemap Scouting**: Automatically fetch and parse `sitemap.xml` files to generate capture manifests.
+- **Smart Loading**: Waits for "Network Idle" states by default to ensure pages are fully rendered.
+- **QA Foundation**: Built-in `doctor` command to verify your environment and dependencies.
 
-## 📦 Installation
+## Installation
 
-This project uses `uv` for lightning-fast dependency management.
+paparazzit is managed using [uv](https://github.com/astral-sh/uv).
 
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/trevortwining/paparazzit.git
+   cd paparazzit
+   ```
+
+2. **Setup the environment**:
+   ```bash
+   uv venv
+   source .venv/bin/activate
+   uv sync
+   ```
+
+3. **Install Browser Dependencies**:
+   ```bash
+   playwright install chromium
+   ```
+
+4. **Verify Installation**:
+   ```bash
+   paparazzit doctor
+   ```
+
+## Quick Start
+
+### 1. Scout a Site
+Generate a manifest of URLs from a sitemap:
 ```bash
-git clone <repository-url>
-cd paparazzit
-uv sync
+paparazzit scout --url https://example.com --output manifests/example.json
 ```
 
-## 🛠 Usage
-
-### 1. Scouting a Site
-Generate a manifest of URLs from a website's sitemap.
+### 2. Snap a Single URL
+Capture a quick screenshot:
 ```bash
-uv run paparazzit scout --url https://example.com/sitemap.xml --output manifest.json
+paparazzit snap --url https://example.com
 ```
 
-### 2. Capturing Screenshots
-
-#### Snap a Single URL
+### 3. Batch Capture from Manifest
+Capture everything in your scouted manifest:
 ```bash
-uv run paparazzit snap --url https://google.com
+paparazzit snap --manifest captures/manifests/example.json
 ```
 
-#### Snap a Specific Window
+### 4. Capture a Desktop Window
+Capture an open application by its window title:
 ```bash
-uv run paparazzit snap --window "Chrome"
+paparazzit snap --window "Visual Studio Code"
 ```
 
-#### Batch Snap from a Manifest
+## Storage Convention
+
+Captures are organized into a strict directory structure for easy navigation:
+- **Manifests**: `captures/manifests/*.json`
+- **Screenshots**: `captures/snaps/[manifest-name]/`
+
+## Development
+
+Run tests to ensure everything is working:
 ```bash
-uv run paparazzit snap --manifest manifest.json
+pytest
 ```
-
-**Manifest Format (`manifest.json`):**
-The manifest can be a simple list of URLs or a list of objects containing a `url` key.
-```json
-[
-  "https://google.com",
-  "https://github.com",
-  { "url": "https://wikipedia.org" }
-]
-```
-
-## 📁 Output Structure
-
-All captures are saved to the `captures/` directory and organized into subfolders:
-
-- **Single Snaps:** Saved to `captures/<domain-name>/` (e.g., `google-com/`) with individual PNG and JSON sidecars.
-- **Batch Snaps:** Saved to `captures/<manifest-name>/` (e.g., `sites-json/`) with multiple PNGs and a single unified `metadata.json` for the entire run.
-- **Desktop Snaps:** Saved to `captures/desktop/`.
-
-**Files:**
-- `snap_YYYYMMDD_HHMMSS.png`: The screenshot (full-page for web).
-- `snap_YYYYMMDD_HHMMSS.json`: Metadata (for single snaps).
-- `metadata.json`: Consolidated metadata (for batch snaps).
-
-## 🛠 Development
-
-Built with the **GitHub Spec Kit** framework.
-- **Language:** Python 3.11+
-- **Core Libs:** Playwright, MSS, Click, HTTPX.
 
 ---
-*Maintained by Trevor Twining
+*Created with dry wit and high competence by TBot.*
