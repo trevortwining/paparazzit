@@ -1,5 +1,5 @@
 import httpx
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 import gzip
 from typing import List
 from urllib.parse import urljoin, urlparse
@@ -56,6 +56,7 @@ def parse_sitemap_xml(xml_content: bytes) -> List[str]:
     """
     Parses XML content and extracts URLs from <loc> tags.
     Handles namespaces commonly found in sitemaps.
+    Uses defusedxml to prevent XXE attacks.
     """
     try:
         root = ET.fromstring(xml_content)

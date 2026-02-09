@@ -11,6 +11,9 @@ def test_cli_snap_no_args():
     assert "Error: You must provide either --url, --window, or --manifest." in result.output
 
 def test_cli_scout_mocked(mocker, tmp_path):
+    # Mock PROJECT_ROOT to allow writing to tmp_path
+    mocker.patch("paparazzit.cli.PROJECT_ROOT", str(tmp_path))
+
     # Mock fetch_sitemap to avoid network calls
     mock_fetch = mocker.patch("paparazzit.cli.fetch_sitemap")
     mock_fetch.return_value = ["https://site.com/1", "https://site.com/2"]
@@ -81,6 +84,9 @@ def test_cli_snap_manifest_not_found(mocker):
 
 
 def test_cli_scout_limit(mocker, tmp_path):
+    # Mock PROJECT_ROOT to allow writing to tmp_path
+    mocker.patch("paparazzit.cli.PROJECT_ROOT", str(tmp_path))
+    
     mock_fetch = mocker.patch("paparazzit.cli.fetch_sitemap")
     mock_fetch.return_value = ["https://site.com/1", "https://site.com/2", "https://site.com/3"]
     

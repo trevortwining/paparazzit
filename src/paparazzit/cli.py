@@ -27,6 +27,13 @@ def snap(url, window, manifest, wait):
         click.echo("Error: You must provide either --url, --window, or --manifest.")
         sys.exit(1)
     
+    # Security: Validate URL scheme
+    if url:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            click.echo(f"Error: Invalid URL scheme '{parsed.scheme}'. Only 'http' and 'https' are supported.")
+            sys.exit(1)
+
     try:
         subdir = None
         if manifest:
@@ -100,7 +107,8 @@ def snap(url, window, manifest, wait):
 @click.option("--url", required=True, help="URL of the sitemap.xml file or domain root.")
 @click.option("--output", help="Output filename for the manifest (default: captures/manifests/manifest.json).")
 @click.option("--limit", type=int, help="Limit the number of URLs to extract.")
-def scout(url, output, limit):
+@click.option("--force", is_flag=True, help="Force writing to output path even if outside project directory.")
+def scout(url, output, limit, force):
     """Fetch and parse a sitemap.xml file into a JSON manifest."""
     try:
         # Default output path convention
@@ -118,6 +126,25 @@ def scout(url, output, limit):
             if not os.path.isabs(output) and "/" not in output and "\\" not in output:
                  output = os.path.join(MANIFESTS_DIR, output)
             
+            # Security: Path Traversal Check
+            abs_output = os.path.abspath(output)
+            abs_root = os.path.abspath(PROJECT_ROOT)
+            
+            # Check if output is within project root
+            # commonpath raises ValueError on Windows if drives differ, so handle that
+            try:
+                if os.path.commonpath([abs_output, abs_root]) != abs_root:
+                    if not force:
+                        click.echo(f"Error: Output path '{output}' is outside the project directory.")
+                        click.echo("Use --force to override this safety check.")
+                        sys.exit(1)
+            except ValueError:
+                 # Different drives
+                 if not force:
+                    click.echo(f"Error: Output path '{output}' is on a different drive/root than the project.")
+                    click.echo("Use --force to override this safety check.")
+                    sys.exit(1)
+
             # If user provides a complex path, we respect it but ensure parent exists
             parent = os.path.dirname(output)
             if parent:
