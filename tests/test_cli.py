@@ -44,7 +44,7 @@ def test_cli_scout_default_path(mocker):
     result = runner.invoke(cli, ['scout', '--url', 'https://site.com/sitemap.xml'])
     
     assert result.exit_code == 0
-    expected_path = os.path.join(MANIFESTS_DIR, "manifest.json")
+    expected_path = os.path.join(MANIFESTS_DIR, "site-com.json")
     assert f"Manifest saved to: {expected_path}" in result.output
     mock_makedirs.assert_called_with(MANIFESTS_DIR, exist_ok=True)
     mock_open_func.assert_called_with(expected_path, 'w')
@@ -160,3 +160,21 @@ def test_cli_snap_manifest_mocked(mocker, tmp_path):
     assert "Capturing URL: https://a.com ..." in result.output
     assert "Capturing URL: https://b.com ..." in result.output
     assert "Batch processing complete." in result.output
+
+def test_cli_scout_smart_filename(mocker):
+    # Mock fetch_sitemap
+    mock_fetch = mocker.patch("paparazzit.cli.fetch_sitemap")
+    mock_fetch.return_value = ["https://site.com/1"]
+    
+    # Mock os.makedirs and open to avoid real filesystem side effects
+    mock_makedirs = mocker.patch("paparazzit.cli.os.makedirs")
+    mock_open_func = mocker.patch("paparazzit.cli.open", mocker.mock_open())
+    
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scout', '--url', 'https://sub.example.com'])
+    
+    assert result.exit_code == 0
+    expected_path = os.path.join(MANIFESTS_DIR, "sub-example-com.json")
+    assert f"Manifest saved to: {expected_path}" in result.output
+    mock_makedirs.assert_called_with(os.path.dirname(expected_path), exist_ok=True)
+    mock_open_func.assert_called_with(expected_path, 'w')

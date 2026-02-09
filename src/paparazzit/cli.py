@@ -113,7 +113,10 @@ def scout(url, output, limit, force):
     try:
         # Default output path convention
         if output is None:
-            output = os.path.join(MANIFESTS_DIR, "manifest.json")
+            parsed = urlparse(url)
+            domain = parsed.netloc or parsed.path.split('/')[0]
+            domain_slug = domain.replace(".", "-")
+            output = os.path.join(MANIFESTS_DIR, f"{domain_slug}.json")
             os.makedirs(os.path.dirname(output), exist_ok=True)
         else:
             # If user provides a path, use it as is? Or make it relative to MANIFESTS_DIR?
