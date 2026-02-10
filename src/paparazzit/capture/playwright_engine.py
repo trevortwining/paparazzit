@@ -38,24 +38,26 @@ class PlaywrightEngine(CaptureEngine):
 
     def _scroll_page(self, page):
         """
-        Scrolls the page from top to bottom to trigger lazy loading.
+        Incrementally scrolls the page from top to bottom to trigger lazy loading.
         """
-        # Python-driven scroll for better control and reliability
-        last_height = page.evaluate("document.body.scrollHeight")
-        
-        while True:
-            # Scroll down to bottom
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        # Get total scroll height
+        scroll_height = page.evaluate("document.body.scrollHeight")
+        viewport_height = page.evaluate("window.innerHeight")
+        current_scroll = 0
+
+        while current_scroll < scroll_height:
+            # Scroll down by viewport height
+            page.evaluate(f"window.scrollTo(0, {current_scroll + viewport_height});")
+            current_scroll += viewport_height
             
-            # Wait to load page
-            page.wait_for_timeout(2000)
+            # Wait for content to load
+            page.wait_for_timeout(500)
             
-            # Calculate new scroll height and compare with last scroll height
-            new_height = page.evaluate("document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
-        
+            # Recalculate scroll height in case it grew (infinite scroll)
+            new_scroll_height = page.evaluate("document.body.scrollHeight")
+            if new_scroll_height > scroll_height:
+                scroll_height = new_scroll_height
+
         # Scroll back to top
         page.evaluate("window.scrollTo(0, 0)")
         # Wait for network idle again as new resources might be loading
