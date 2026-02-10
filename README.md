@@ -29,6 +29,7 @@ paparazzit is managed using [uv](https://github.com/astral-sh/uv).
 
 3. **Install Browser Dependencies**:
    ```bash
+   playwright install --with-deps
    playwright install chromium
    ```
 
