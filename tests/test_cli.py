@@ -130,7 +130,7 @@ def test_cli_snap_url_wait_flag(mocker):
     
     assert result.exit_code == 0
     # Verify capture was called with the wait parameter
-    mock_engine_instance.capture.assert_called_with('https://example.com', wait=2000)
+    mock_engine_instance.capture.assert_called_with('https://example.com', wait=2000, scroll=False)
 
 def test_cli_snap_manifest_mocked(mocker, tmp_path):
     # Create a dummy manifest
@@ -178,3 +178,19 @@ def test_cli_scout_smart_filename(mocker):
     assert f"Manifest saved to: {expected_path}" in result.output
     mock_makedirs.assert_called_with(os.path.dirname(expected_path), exist_ok=True)
     mock_open_func.assert_called_with(expected_path, 'w')
+
+def test_cli_snap_url_scroll_flag(mocker):
+    # Mock PlaywrightEngine
+    mock_pw_class = mocker.patch("paparazzit.cli.PlaywrightEngine")
+    mock_engine_instance = mock_pw_class.return_value
+    
+    mock_save = mocker.patch("paparazzit.cli.save_capture")
+    mock_save.return_value = ("img.png", "meta.json", {})
+    
+    runner = CliRunner()
+    # Test --scroll flag
+    result = runner.invoke(cli, ['snap', '--url', 'https://example.com', '--scroll'])
+    
+    assert result.exit_code == 0
+    # Verify capture was called with the scroll parameter
+    mock_engine_instance.capture.assert_called_with('https://example.com', wait=0, scroll=True)

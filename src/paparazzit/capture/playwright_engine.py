@@ -4,6 +4,7 @@ from PIL import Image
 import io
 import subprocess
 import sys
+import time
 
 class PlaywrightEngine(CaptureEngine):
     def __init__(self):
@@ -35,13 +36,46 @@ class PlaywrightEngine(CaptureEngine):
         if self.playwright:
             self.playwright.stop()
 
-    def capture(self, url: str, wait: int = 0):
+    def _scroll_page(self, page):
+        """
+        Scrolls the page from top to bottom to trigger lazy loading.
+        """
+        # Python-driven scroll for better control and reliability
+        last_height = page.evaluate("document.body.scrollHeight")
+        
+        while True:
+            # Scroll down to bottom
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+            
+            # Wait to load page
+            page.wait_for_timeout(2000)
+            
+            # Calculate new scroll height and compare with last scroll height
+            new_height = page.evaluate("document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+        
+        # Scroll back to top
+        page.evaluate("window.scrollTo(0, 0)")
+        # Wait for network idle again as new resources might be loading
+        try:
+            page.wait_for_load_state("networkidle", timeout=5000)
+        except Exception:
+            # If network doesn't idle, just proceed
+            pass
+
+    def capture(self, url: str, wait: int = 0, scroll: bool = False):
         if self.browser:
             # Context management handled externally or via __enter__
             page = self.browser.new_page()
             try:
                 page.goto(url)
                 page.wait_for_load_state("networkidle")
+                
+                if scroll:
+                    self._scroll_page(page)
+
                 if wait > 0:
                     page.wait_for_timeout(wait)
                 screenshot_bytes = page.screenshot(full_page=True)
@@ -56,6 +90,10 @@ class PlaywrightEngine(CaptureEngine):
                 try:
                     page.goto(url)
                     page.wait_for_load_state("networkidle")
+                    
+                    if scroll:
+                        self._scroll_page(page)
+                        
                     if wait > 0:
                         page.wait_for_timeout(wait)
                     screenshot_bytes = page.screenshot(full_page=True)

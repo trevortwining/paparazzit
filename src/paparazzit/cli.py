@@ -21,7 +21,8 @@ def cli():
 @click.option("--window", help="Capture a screenshot of a window by title using MSS.")
 @click.option("--manifest", help="Capture multiple URLs from a JSON manifest file.")
 @click.option("--wait", type=int, default=0, help="Additional wait time in milliseconds before capture.")
-def snap(url, window, manifest, wait):
+@click.option("--scroll", is_flag=True, help="Auto-scroll the page to trigger lazy-loaded resources.")
+def snap(url, window, manifest, wait, scroll):
     """Capture a screenshot and save it with metadata."""
     if not url and not window and not manifest:
         click.echo("Error: You must provide either --url, --window, or --manifest.")
@@ -58,7 +59,7 @@ def snap(url, window, manifest, wait):
                 for target_url in urls:
                     try:
                         click.echo(f"Capturing URL: {target_url} ...")
-                        image = engine.capture(target_url, wait=wait)
+                        image = engine.capture(target_url, wait=wait, scroll=scroll)
                         # save_capture uses DEFAULT_CAPTURES_DIR by default
                         image_path, _, metadata = save_capture(image, "playwright", target_url, subdir=subdir, save_json=False)
                         all_metadata.append(metadata)
@@ -83,7 +84,7 @@ def snap(url, window, manifest, wait):
             subdir = domain.replace(".", "-")
             click.echo(f"Capturing URL: {url} ...")
             engine = PlaywrightEngine()
-            image = engine.capture(url, wait=wait)
+            image = engine.capture(url, wait=wait, scroll=scroll)
             engine_name = "playwright"
             target = url
         else:
