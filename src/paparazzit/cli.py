@@ -221,13 +221,6 @@ def doctor():
     else:
         click.echo(f"ℹ️ Manifests directory not yet created: {MANIFESTS_DIR}")
 
-    # 4. Check for pre-commit hooks
-    git_hooks = os.path.join(PROJECT_ROOT, ".git", "hooks", "pre-commit")
-    if os.path.exists(git_hooks):
-        click.echo("✅ Git pre-commit hooks are installed.")
-    else:
-        click.echo(f"❌ Git pre-commit hooks are NOT installed (checked {git_hooks}).")
-
     click.echo("\nDoctor check complete. Take two of these and call me in the morning! ")
 
 if __name__ == "__main__":
