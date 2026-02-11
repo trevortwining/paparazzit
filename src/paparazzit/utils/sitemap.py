@@ -67,9 +67,18 @@ def parse_sitemap_xml(xml_content: bytes) -> List[str]:
     # We can use wildcard or explicit namespace handling
     urls = []
     
-    # NEW LOGIC: Strictly look for <url><loc> to avoid sitemap index and image locs
-    for loc in root.findall(".//{*}url/{*}loc"):
-        if loc.text:
-            urls.append(loc.text.strip())
+    # Check if this is a sitemap index or a standard sitemap
+    if root.tag.endswith('sitemapindex'):
+        # If it's an index, we need to fetch the child sitemaps?
+        # Or for now, just extract all <loc> tags from <sitemap> entries.
+        # Standard behavior for "scout" should probably be to flatten the index.
+        for loc in root.findall(".//{*}sitemap/{*}loc"):
+            if loc.text:
+                urls.append(loc.text.strip())
+    else:
+        # Standard sitemap: Strictly look for <url><loc> to avoid image locs etc.
+        for loc in root.findall(".//{*}url/{*}loc"):
+            if loc.text:
+                urls.append(loc.text.strip())
             
     return urls

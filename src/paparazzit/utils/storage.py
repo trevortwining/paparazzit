@@ -3,7 +3,12 @@ import os
 from datetime import datetime
 import platform
 
-PROJECT_ROOT = os.path.expanduser("~/projects/utils/paparazzit")
+# Resolve PROJECT_ROOT
+PROJECT_ROOT = os.environ.get("PAPARAZZIT_ROOT")
+if not PROJECT_ROOT:
+    # Move up 3 levels from src/paparazzit/utils/storage.py to get to project root
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
 DEFAULT_CAPTURES_DIR = os.path.join(PROJECT_ROOT, "captures", "snaps")
 
 def get_system_info():
